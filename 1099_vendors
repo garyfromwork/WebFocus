@@ -1,0 +1,91 @@
+with vendors as (
+    select distinct invoice_code_key,
+    check_number_key,
+    bank_code_key,
+    bank_account_name,
+    farinva_acct_code,
+    ftvacct_title,
+    vendor_id,
+    vendor_name,
+    (case when entity_ind = 'P' 
+        then ltrim(spriden_last_name ||', ' || spriden_first_name)
+        else vendor_name end)
+        vend_name,
+        invoice_date,
+        transaction_date,
+        fsyr_code,
+        invoice_1099_ind,
+        invoice_1099_id,
+        check_type,
+        check_date,
+        farinva_addl_chrg_amt,
+        farinva_appr_amt,
+        net_amount,
+        cancel_ind,
+        cancel_date,
+        reconciliation_ind,
+        DECODE(FSPD_CODE,
+            '00', '00',
+            '01', 'Sept',
+            '02', 'Oct',
+            '03', 'Nov',
+            '04', 'Dec',
+            '05', 'Jan',
+            '06', 'Feb',
+            '07', 'March',
+            '08', 'April',
+            '09', 'May',
+            '10', 'June',
+            '11', 'July',
+            '12', 'Aug',
+            '13', '13',
+            '14', '14') mth,
+    entity_ind,
+    spriden_change_ind,
+    fspd_code,
+    ftvvent_vtyp_code,
+    FTVVEND_ITYP_SEQ_CODE,
+    ftvvend_tax_form_date
+from AF_DISBURSEMENT_ANALYSIS
+left join spriden
+    on spriden_pidm = pidm_key
+left join ftvvent
+    on ftvvent_pidm = spriden_pidm
+    and ftvvent_activity_date = (select max(b.ftvvent_activity_date)
+                                    from ftvvent b
+                                    where b.ftvvent_pidm = ftvvent_pidm)
+left join farinva
+    on farinva_invh_code = invoice_code_key
+left join ftvacct
+    on farinva_acct_code = ftvacct_acct_code
+left join ftvvend
+    on ftvvend_pidm = spriden_pidm
+where FTVACCT_NCHG_DATE > sysdate
+and ftvacct_eff_date <= sysdate
+and spriden_change_ind is null
+)
+select distinct
+    check_number_key,
+    farinva_acct_code,
+    ftvacct_title,
+    vendor_id,
+    vend_name,
+    to_date(invoice_date, 'dd-mon-yyyy') invoice_date,
+    to_date(transaction_date, 'dd-mon-yyyy') transaction_date,
+    (select ftvityp_code
+        from ftvityp
+        where ftvityp_seq_code = FTVVEND_ITYP_SEQ_CODE) income_type,
+    fsyr_code,
+    invoice_1099_ind,
+    invoice_1099_id,
+    check_date,
+    farinva_addl_chrg_amt,
+    farinva_appr_amt,
+    net_amount
+from vendors
+where (vendor_id = '&VID'
+    and ('&CalYear' is not null and check_date between to_date('01-JAN-'||'&CalYear', 'dd-mon-rr') and to_date('31-DEC-'||'&CalYear', 'dd-mon-rr'))
+) or ('&VID' is null
+    and ('&CalYear' is not null and check_date between to_date('01-JAN-'||'&CalYear', 'dd-mon-rr') and to_date('31-DEC-'||'&CalYear', 'dd-mon-rr'))
+) or ('&VID' is null and '&CalYear' is null)
+order by vend_name asc, check_number_key asc, to_date(invoice_date, 'dd-mon-yyyy') asc, to_date(transaction_date, 'dd-mon-yyyy') asc;
