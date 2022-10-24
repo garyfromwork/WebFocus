@@ -70,22 +70,22 @@ select distinct
     ftvacct_title,
     vendor_id,
     vend_name,
-    to_date(invoice_date, 'dd-mon-yyyy') invoice_date,
-    to_date(transaction_date, 'dd-mon-yyyy') transaction_date,
+    upper(to_char(invoice_date, 'dd-mon-yyyy')) invoice_date,
+    upper(to_char(transaction_date, 'dd-mon-yyyy')) transaction_date,
     (select ftvityp_code
         from ftvityp
         where ftvityp_seq_code = FTVVEND_ITYP_SEQ_CODE) income_type,
     fsyr_code,
     invoice_1099_ind,
     invoice_1099_id,
-    check_date,
+    upper(to_char(check_date, 'dd-mon-yyyy')) check_date,
     farinva_addl_chrg_amt,
     farinva_appr_amt,
     net_amount
 from vendors
 where (vendor_id = '&VID'
-    and ('&CalYear' is not null and check_date between to_date('01-JAN-'||'&CalYear', 'dd-mon-rr') and to_date('31-DEC-'||'&CalYear', 'dd-mon-rr'))
+    and ('&CalYear' is not null and check_date between to_date('01-JAN-'||'&CalYear', 'dd-mon-yyyy') and to_date('31-DEC-'||'&CalYear', 'dd-mon-yyyy'))
 ) or ('&VID' is null
-    and ('&CalYear' is not null and check_date between to_date('01-JAN-'||'&CalYear', 'dd-mon-rr') and to_date('31-DEC-'||'&CalYear', 'dd-mon-rr'))
+    and ('&CalYear' is not null and check_date between to_date('01-JAN-'||'&CalYear', 'dd-mon-yyyy') and to_date('31-DEC-'||'&CalYear', 'dd-mon-yyyy'))
 ) or ('&VID' is null and '&CalYear' is null)
 order by vend_name asc, check_number_key asc, to_date(invoice_date, 'dd-mon-yyyy') asc, to_date(transaction_date, 'dd-mon-yyyy') asc;
